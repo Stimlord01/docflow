@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  phone         String?
+  city          String?
+  address       String?
+  role          String         @default("Utilisateur") // "Utilisateur", "Gestionnaire", "Administrateur"
+  status        String         @default("incomplet")   // "actif", "incomplet", "bloque"
+  joined        DateTime       @default(now())
+  documents     Document[]
+  notifications Notification[]
+  audits        Audit[]
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  name       String
+  cat        String   // e.g. "Identité", "Domicile", "Bancaire", "Emploi", "Assurance"
+  status     String   @default("attente") // "valide", "attente", "refuse"
+  date       DateTime @default(now())
+  size       String   // e.g. "1.2 Mo"
+  type       String   // e.g. "PDF", "JPG", "PNG", "DOCX"
+  note       String   @default("") // Rejection reason
+  fileKey    String   // S3 key or relative path
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id       String  @id // e.g. "C-01"
+  name     String  @unique
+  formats  String  // e.g. "PDF, JPG, PNG"
+  required Boolean @default(false)
+}
+
+model Notification {
+  id     String   @id @default(uuid())
+  title  String
+  text   String
+  type   String   // "valide", "refuse", "info"
+  time   DateTime @default(now())
+  read   Boolean  @default(false)
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Audit {
+  id     String   @id @default(uuid())
+  who    String
+  act    String
+  obj    String
+  time   DateTime @default(now())
+  tag    String   // "valide", "refuse", "info"
+  userId String?
+  user   User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
