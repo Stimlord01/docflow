@@ -636,11 +636,7 @@ function App() {
               <p style={{ color: '#94A3B8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>
                 Dépôt sécurisé, suivi de statut en temps réel, validation par l’équipe. Une plateforme SaaS conçue pour évoluer.
               </p>
-              <div style={{ display: 'flex', gap: '26px', marginTop: '32px' }}>
-                <div><div style={{ fontSize: '22px', fontWeight: 700 }}>99,9 %</div><div style={{ color: '#94A3B8', fontSize: '12.5px' }}>Disponibilité</div></div>
-                <div><div style={{ fontSize: '22px', fontWeight: 700 }}>RGPD</div><div style={{ color: '#94A3B8', fontSize: '12.5px' }}>Conforme</div></div>
-                <div><div style={{ fontSize: '22px', fontWeight: 700 }}>SSO</div><div style={{ color: '#94A3B8', fontSize: '12.5px' }}>&amp; 2FA</div></div>
-              </div>
+
             </div>
             <div style={{ position: 'relative', color: '#64748B', fontSize: '12.5px' }}>© 2026 DocFlow — Enterprise SaaS</div>
           </div>
@@ -657,24 +653,7 @@ function App() {
                     Connectez-vous pour déposer vos justificatifs ou valider les dossiers des membres de votre organisation.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-                    <button onClick={() => handleDemoLogin('a.rousseau@mail.fr')} className="hover-brightness" style={{
-                      padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
-                    }}>
-                      Dossier de démo (Amélie Rousseau)
-                    </button>
-                    <button onClick={() => handleDemoLogin('m.petit@admin.fr')} className="hover-brightness" style={{
-                      padding: '12px', borderRadius: '10px', border: '1px solid #0EA5E9', background: '#F0F9FF', color: '#0369A1', fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
-                    }}>
-                      Console Admin (M. Petit)
-                    </button>
-                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '20px 0', color: '#94A3B8', fontSize: '12px' }}>
-                    <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }}></div>
-                    OU CONNECTEZ-VOUS MANUELLEMENT
-                    <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }}></div>
-                  </div>
 
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => setRoute('login')} className="hover-bg-slate" style={{
