@@ -274,27 +274,7 @@ function App() {
     }
   };
 
-  const handleDemoLogin = async (email: string) => {
-    try {
-      setLoading(true);
-      const res = await api.login({ email, password: 'motdepasse' });
-      localStorage.setItem('docflow_token', res.token);
-      setUser(res.user);
-      fireToast('valide', `Connexion démo : ${res.user.name}`);
-      
-      if (res.user.role === 'Administrateur' || res.user.role === 'Gestionnaire') {
-        setRoute('a-dash');
-        loadAdminData();
-      } else {
-        setRoute('u-dash');
-        loadUserData();
-      }
-    } catch (err: any) {
-      fireToast('refuse', err.message || 'Erreur de connexion démo');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const logout = () => {
     localStorage.removeItem('docflow_token');
