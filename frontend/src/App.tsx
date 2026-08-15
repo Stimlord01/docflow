@@ -570,10 +570,11 @@ function App() {
         <div style={{ minHeight: '100vh', display: 'flex', background: '#F8FAFC' }}>
           {/* Left brand rail */}
           <div style={{
-            flex: 1,
+            flex: 1.1,
             background: 'linear-gradient(160deg,#0B1220 0%,#0C2233 55%,#083344 100%)',
+            backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(14,165,233,0.15) 0%, transparent 60%), linear-gradient(160deg,#0B1220 0%,#0C2233 55%,#083344 100%)',
             color: '#fff',
-            padding: '44px 48px',
+            padding: '56px 64px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -581,14 +582,23 @@ function App() {
             overflow: 'hidden',
             minWidth: 0
           }}>
+            {/* Grid overlay pattern */}
             <div style={{
               position: 'absolute',
-              top: '-80px',
-              right: '-80px',
-              width: '360px',
-              height: '360px',
+              inset: 0,
+              opacity: 0.08,
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+              backgroundSize: '24px 24px'
+            }}></div>
+            <div style={{
+              position: 'absolute',
+              top: '-100px',
+              right: '-100px',
+              width: '400px',
+              height: '400px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle,rgba(14,165,233,.35),transparent 70%)'
+              background: 'radial-gradient(circle,rgba(14,165,233,.4),transparent 70%)',
+              filter: 'blur(30px)'
             }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '11px', position: 'relative' }}>
               <div style={{
@@ -607,16 +617,65 @@ function App() {
                   <path d="M9 15l2 2 4-4"></path>
                 </svg>
               </div>
-              <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-.2px' }}>DocFlow</span>
+              <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-.3px' }}>DocFlow</span>
             </div>
-            <div style={{ position: 'relative', maxWidth: '420px' }}>
-              <div style={{ fontSize: '34px', lineHeight: 1.15, fontWeight: 700, letterSpacing: '-.8px', marginBottom: '16px', textWrap: 'balance' }}>
-                La collecte de documents administratifs, enfin fluide.
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+              <div>
+                <div style={{ fontSize: '36px', lineHeight: 1.15, fontWeight: 800, letterSpacing: '-.9px', marginBottom: '16px', textWrap: 'balance' }}>
+                  La collecte de documents administratifs, enfin fluide.
+                </div>
+                <p style={{ color: '#94A3B8', fontSize: '15.5px', lineHeight: 1.6, margin: 0, maxWidth: '440px' }}>
+                  Dépôt sécurisé, suivi de statut en temps réel, validation par l’équipe. Une plateforme SaaS conçue pour évoluer.
+                </p>
               </div>
-              <p style={{ color: '#94A3B8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>
-                Dépôt sécurisé, suivi de statut en temps réel, validation par l’équipe. Une plateforme SaaS conçue pour évoluer.
-              </p>
 
+              {/* Beautiful Interactive Mockup Card */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                maxWidth: '440px',
+                animation: 'fadeUp 0.6s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#EF4444' }}></div>
+                    <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#F59E0B' }}></div>
+                    <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#10B981' }}></div>
+                  </div>
+                  <span style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, letterSpacing: '0.8px' }}>DOCFLOW PREVIEW</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Dossier #9042</div>
+                  <div style={{ fontSize: '15.5px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>Vérification de complétude</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: '12.5px', color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      📄 Pièce d'identité
+                    </span>
+                    <span style={{ fontSize: '10.5px', background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(52,211,153,0.3)', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>Validé</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: '12.5px', color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🏠 Justificatif de domicile
+                    </span>
+                    <span style={{ fontSize: '10.5px', background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(52,211,153,0.3)', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>Validé</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: '12.5px', color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      💳 RIB bancaire
+                    </span>
+                    <span style={{ fontSize: '10.5px', background: 'rgba(245,158,11,0.15)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.3)', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>À vérifier</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div style={{ position: 'relative', color: '#64748B', fontSize: '12.5px' }}>© 2026 DocFlow — Enterprise SaaS</div>
           </div>
@@ -629,22 +688,20 @@ function App() {
               {route === 'landing' && (
                 <div>
                   <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.6px', marginBottom: '8px', color: '#0F172A' }}>Rejoignez DocFlow</h2>
-                  <p style={{ color: '#64748B', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
+                  <p style={{ color: '#64748B', fontSize: '14.5px', marginBottom: '32px', lineHeight: '1.5' }}>
                     Connectez-vous pour déposer vos justificatifs ou valider les dossiers des membres de votre organisation.
                   </p>
 
-
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => setRoute('login')} className="hover-bg-slate" style={{
-                      flex: 1, padding: '10px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '13.5px', cursor: 'pointer'
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button onClick={() => setRoute('login')} className="hover-brightness" style={{
+                      padding: '13px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#2563EB)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(37,99,235,0.2)', transition: 'transform 0.15s ease'
                     }}>
-                      Se connecter
+                      Se connecter à mon espace
                     </button>
                     <button onClick={() => setRoute('register')} className="hover-bg-slate" style={{
-                      flex: 1, padding: '10px', borderRadius: '9px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '13.5px', cursor: 'pointer'
+                      padding: '13px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#334155', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'background-color 0.15s ease'
                     }}>
-                      Créer un compte
+                      Créer un nouveau compte
                     </button>
                   </div>
                 </div>
