@@ -27,6 +27,7 @@ interface UserType {
   valid: number;
   total: number;
   init: string;
+  docs?: DocumentType[];
 }
 
 interface CategoryType {
@@ -101,7 +102,6 @@ function App() {
   const [newCatName, setNewCatName] = useState<string>('');
   const [newCatFormats, setNewCatFormats] = useState<string>('PDF, JPG, PNG');
   const [newCatRequired, setNewCatRequired] = useState<boolean>(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryType | null>(null);
 
   // Review Modal State
   const [reviewDoc, setReviewDoc] = useState<any>(null);
@@ -547,7 +547,6 @@ function App() {
   const requiredCategories = categories.filter(c => c.required);
   const requiredSlots = requiredCategories.map(cat => {
     const doc = documents.find(d => d.cat === cat.name);
-    const color = cat.name === 'Identité' ? '#0EA5E9' : '#10B981';
     return {
       name: cat.name === 'Identité' ? "Pièce d'identité" : cat.name,
       cat: cat.name,
@@ -1552,7 +1551,7 @@ function App() {
                             adminDocs
                               .filter(d => d.status === 'attente')
                               .slice(0, 4)
-                              .map((d, idx) => (
+                              .map((d) => (
                                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid #F5F7F9' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
