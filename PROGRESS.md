@@ -1,19 +1,24 @@
 # PROGRESS
 
 ## Tâche actuelle
-Codebase entièrement préparée pour le déploiement cloud (Vercel & Render).
+- [x] Projet entièrement hébergé et fonctionnel dans le cloud.
 
 ## Dernière étape terminée
-Initialisation du dépôt Git, configuration de l'API dynamique, ajout du fichier `vercel.json` pour la gestion du routage React, configuration globale du `.gitignore`, et premier commit de préparation.
+- [x] Backend déployé avec succès sur Render : `https://docflow-ama0.onrender.com`
+- [x] Frontend déployé avec succès sur Render (Site statique) avec redirection des routes et liaison à l'API de production.
+- [x] Synchronisation et sauvegarde du code effectuée sur le dépôt GitHub.
 
-## Prochaine étape
-Pousser le code sur GitHub et connecter le dépôt aux plateformes Vercel (frontend) et Render (backend).
+## Statut global
+- **Base de données** : PostgreSQL managée (Neon.tech) — Opérationnelle
+- **Backend API** : Express.js + Prisma sur Render (Web Service) — Opérationnel
+- **Frontend** : React + Vite sur Render (Static Site) — Opérationnel
+- **Stockage fichiers** : Persistant via volume Render — Opérationnel
 
-## Fichiers concernés
-- `frontend/src/api.ts`
-- `frontend/vercel.json`
-- `.gitignore`
-- `PROGRESS.md`
+## Fichiers configurés
+- `frontend/src/api.ts` (API dynamique)
+- `frontend/src/App.tsx` (Correction des erreurs de typage TypeScript)
+- `PROGRESS.md` (Finalisé)
 
 ## Problèmes connus
-- Aucun. Le code compile parfaitement et les configurations de déploiement sont prêtes.
+- Aucun. L'application est entièrement déployée, sécurisée, fonctionnelle et prête pour la production.
+
