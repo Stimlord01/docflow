@@ -68,6 +68,8 @@ function App() {
   const [registerName, setRegisterName] = useState<string>('');
   const [registerEmail, setRegisterEmail] = useState<string>('');
   const [registerPassword, setRegisterPassword] = useState<string>('');
+  const [registerIsAdmin, setRegisterIsAdmin] = useState<boolean>(false);
+  const [registerAdminSecret, setRegisterAdminSecret] = useState<string>('');
 
   // Toast
   const [toast, setToast] = useState<{ type: string; msg: string } | null>(null);
@@ -261,12 +263,22 @@ function App() {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await api.register({ name: registerName, email: registerEmail, password: registerPassword });
+      const payload: any = { name: registerName, email: registerEmail, password: registerPassword };
+      if (registerIsAdmin) {
+        payload.adminSecret = registerAdminSecret;
+      }
+      const res = await api.register(payload);
       localStorage.setItem('docflow_token', res.token);
       setUser(res.user);
       fireToast('valide', 'Votre compte a été créé avec succès !');
-      setRoute('u-dash');
-      loadUserData();
+      
+      if (res.user.role === 'Administrateur' || res.user.role === 'Gestionnaire') {
+        setRoute('a-dash');
+        loadAdminData();
+      } else {
+        setRoute('u-dash');
+        loadUserData();
+      }
     } catch (err: any) {
       fireToast('refuse', err.message || 'Erreur lors de la création du compte');
     } finally {
@@ -775,6 +787,40 @@ function App() {
                       width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none'
                     }} />
                   </div>
+
+                  <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="registerIsAdmin"
+                      checked={registerIsAdmin}
+                      onChange={(e) => {
+                        setRegisterIsAdmin(e.target.checked);
+                        if (!e.target.checked) setRegisterAdminSecret('');
+                      }}
+                      style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                    />
+                    <label htmlFor="registerIsAdmin" style={{ fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                      S'inscrire en tant qu'administrateur
+                    </label>
+                  </div>
+
+                  {registerIsAdmin && (
+                    <div style={{ marginBottom: '18px', animation: 'fadeUp 0.15s ease' }}>
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                        Code secret d'administration
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Saisissez le code d'activation"
+                        value={registerAdminSecret}
+                        onChange={(e) => setRegisterAdminSecret(e.target.value)}
+                        style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none'
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <button type="submit" className="hover-brightness" style={{
                     width: '100%', padding: '11px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '16px'

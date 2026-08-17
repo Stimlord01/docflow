@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'docflow-super-secret-key-2026';
 // Register a new user
 router.post('/register', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, adminSecret } = req.body;
 
     if (!name || !email || !password) {
       res.status(400).json({ error: 'Tous les champs sont obligatoires' });
@@ -25,8 +25,17 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Determine default role: If email includes 'admin' make them Administrateur
-    const role = email.toLowerCase().includes('admin') ? 'Administrateur' : 'Utilisateur';
+    // Determine role: standard 'Utilisateur' unless they supply the correct admin secret key
+    let role = 'Utilisateur';
+    if (adminSecret) {
+      const secret = process.env.ADMIN_SECRET_KEY || 'docflow-admin-secret-2026';
+      if (adminSecret === secret) {
+        role = 'Administrateur';
+      } else {
+        res.status(400).json({ error: "Le code secret d'administration est incorrect" });
+        return;
+      }
+    }
     const status = role === 'Administrateur' ? 'actif' : 'incomplet';
 
     const user = await prisma.user.create({
