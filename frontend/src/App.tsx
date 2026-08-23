@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from './api';
 
 interface DocumentType {
@@ -107,7 +107,17 @@ function App() {
 
   // Admin States
   const [adminUsers, setAdminUsers] = useState<UserType[]>([]);
-  const [adminDocs, setAdminDocs] = useState<any[]>([]);
+  const adminDocs = useMemo(() => {
+    const allDocs: any[] = [];
+    adminUsers.forEach((u: any) => {
+      if (u.docs) {
+        u.docs.forEach((d: any) => {
+          allDocs.push({ ...d, userName: u.name, userInit: u.init, userColor: u.c });
+        });
+      }
+    });
+    return allDocs;
+  }, [adminUsers]);
   const [adminAudits, setAdminAudits] = useState<AuditType[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [userSearch, setUserSearch] = useState<string>('');
@@ -245,20 +255,6 @@ function App() {
       setCategories(cats);
       setAdminAudits(audits);
       handleNotificationsUpdate(notifs);
-
-      // Fetch all user documents to review (status: attente)
-      const allDocs: any[] = [];
-      usersList.forEach((u: any) => {
-        if (u.docs) {
-          u.docs.forEach((d: any) => {
-            allDocs.push({ ...d, userName: u.name, userInit: u.init, userColor: u.c });
-          });
-        } else {
-          // Fallback if not populated
-        }
-      });
-      // We can also extract reviewable documents by requesting details for all users or filtering the flat list
-      setAdminDocs(allDocs);
     } catch (err: any) {
       console.error('Error loading admin data:', err);
     }
@@ -269,7 +265,7 @@ function App() {
     if (user && user.role === 'Administrateur') {
       api.getAdminUsers(userSearch, userStatusFilter).then(setAdminUsers).catch(console.error);
     }
-  }, [userSearch, userStatusFilter]);
+  }, [userSearch, userStatusFilter, user]);
 
   const fireToast = (type: string, msg: string) => {
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
