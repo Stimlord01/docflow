@@ -98,6 +98,7 @@ function App() {
   const [profPhone, setProfPhone] = useState<string>('');
   const [profAddress, setProfAddress] = useState<string>('');
   const [profCity, setProfCity] = useState<string>('');
+  const [profEmailNotif, setProfEmailNotif] = useState<boolean>(true);
 
   // Admin States
   const [adminUsers, setAdminUsers] = useState<UserType[]>([]);
@@ -220,6 +221,7 @@ function App() {
       setProfPhone(profile.phone || '');
       setProfAddress(profile.address || '');
       setProfCity(profile.city || '');
+      setProfEmailNotif(profile.emailNotifications !== false);
     } catch (err: any) {
       console.error('Error loading user data:', err);
     }
@@ -368,7 +370,8 @@ function App() {
         email: profEmail,
         phone: profPhone,
         address: profAddress,
-        city: profCity
+        city: profCity,
+        emailNotifications: profEmailNotif
       });
       setUser(updated);
       fireToast('valide', 'Votre profil a été mis à jour.');
@@ -1663,6 +1666,22 @@ function App() {
                           <div style={{ gridColumn: 'span 2' }}>
                             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Adresse postale</label>
                             <input value={profAddress} onChange={(e) => setProfAddress(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #E2E8F0', fontSize: '14px', outline: 'none' }} />
+                          </div>
+                          
+                          <div style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                            <div style={{ fontWeight: 700, fontSize: '14.5px', marginBottom: '10px', color: '#1E293B' }}>Paramètres de notification</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                              <input 
+                                type="checkbox" 
+                                id="profEmailNotif" 
+                                checked={profEmailNotif} 
+                                onChange={(e) => setProfEmailNotif(e.target.checked)} 
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                              <label htmlFor="profEmailNotif" style={{ fontSize: '13.5px', color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
+                                Recevoir les notifications par e-mail (validation ou refus de document)
+                              </label>
+                            </div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #F1F5F9' }}>

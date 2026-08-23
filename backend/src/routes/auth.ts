@@ -228,7 +228,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
 router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { name, email, phone, address, city } = req.body;
+    const { name, email, phone, address, city, emailNotifications } = req.body;
 
     // Check if email already in use by another user
     if (email) {
@@ -249,6 +249,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
         phone,
         address,
         city,
+        emailNotifications: emailNotifications !== undefined ? !!emailNotifications : undefined,
       },
       select: {
         id: true,
@@ -261,6 +262,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
         status: true,
         joined: true,
         profilePic: true,
+        emailNotifications: true,
       },
     });
 

@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import prisma from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { recalculateUserStatus } from './documents';
+import { sendEmail } from '../utils/email';
 
 const router = Router();
 
@@ -90,7 +91,7 @@ router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
         city: user.city || 'N/A',
         role: user.role,
         status: user.status,
-        joined: new Date(user.joined).toLocaleDateString('fr-FR', { month: '2-digit', year: 'numeric' }),
+        joined: user.joined.toISOString(),
         prog,
         valid: validDocs,
         total: requiredCategoriesCount,
@@ -146,7 +147,7 @@ router.get('/users/:id', async (req: AuthRequest, res: Response): Promise<void> 
       address: user.address || 'N/A',
       role: user.role,
       status: user.status,
-      joined: new Date(user.joined).toLocaleDateString('fr-FR', { month: '2-digit', year: 'numeric' }),
+      joined: user.joined.toISOString(),
       prog,
       valid: validDocs,
       total: requiredCategoriesCount,
@@ -252,16 +253,34 @@ router.post('/documents/:id/review', async (req: AuthRequest, res: Response): Pr
     });
 
     // Send a notification to the document owner
+    const owner = await prisma.user.findUnique({ where: { id: document.userId } });
+    const notifTitle = status === 'valide' ? 'Document validé' : 'Document refusé';
+    const notifText = status === 'valide' 
+      ? `Votre document « ${document.name} » a été validé par l'administration.`
+      : `Votre document « ${document.name} » a été refusé : ${note}`;
+
     await prisma.notification.create({
       data: {
-        title: status === 'valide' ? 'Document validé' : 'Document refusé',
-        text: status === 'valide' 
-          ? `Votre document « ${document.name} » a été validé par l'administration.`
-          : `Votre document « ${document.name} » a été refusé : ${note}`,
+        title: notifTitle,
+        text: notifText,
         type: status,
         userId: document.userId
       }
     });
+
+    if (owner && owner.emailNotifications) {
+      const emailSubject = `DocFlow - ${notifTitle}`;
+      const emailHtml = status === 'valide'
+        ? `<p>Bonjour ${owner.name},</p><p>Votre document <strong>« ${document.name} »</strong> a été <strong>validé</strong> par l'administration.</p><p>Cordialement,<br/>L'équipe DocFlow</p>`
+        : `<p>Bonjour ${owner.name},</p><p>Votre document <strong>« ${document.name} »</strong> a été <strong>refusé</strong>.</p><p>Motif : <em>${note}</em></p><p>Merci de vous connecter sur DocFlow pour remplacer ce document.</p><p>Cordialement,<br/>L'équipe DocFlow</p>`;
+      
+      sendEmail({
+        to: owner.email,
+        subject: emailSubject,
+        text: notifText,
+        html: emailHtml
+      }).catch(console.error);
+    }
 
     res.json(updatedDoc);
   } catch (error) {

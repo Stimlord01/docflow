@@ -3,6 +3,12 @@ import prisma from './db';
 
 export async function seedDatabase() {
   try {
+    // 0. Upgrade any legacy "Gestionnaire" users to "Administrateur"
+    await prisma.user.updateMany({
+      where: { role: 'Gestionnaire' },
+      data: { role: 'Administrateur' }
+    });
+
     // 1. Seed Categories if empty
     const categoryCount = await prisma.category.count();
     if (categoryCount === 0) {
