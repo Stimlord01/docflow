@@ -5,16 +5,16 @@ import { recalculateUserStatus } from './documents';
 
 const router = Router();
 
-// Middleware to restrict access to Admins/Managers only
-const requireAdminOrManager = (req: AuthRequest, res: Response, next: NextFunction): void => {
+// Middleware to restrict access to Admins only
+const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
   // Allow all authenticated users to view categories list
   if (req.path === '/categories' && req.method === 'GET') {
     next();
     return;
   }
 
-  if (req.userRole !== 'Administrateur' && req.userRole !== 'Gestionnaire') {
-    res.status(403).json({ error: 'Accès réservé aux administrateurs ou gestionnaires' });
+  if (req.userRole !== 'Administrateur') {
+    res.status(403).json({ error: 'Accès réservé aux administrateurs' });
     return;
   }
   next();
@@ -22,7 +22,7 @@ const requireAdminOrManager = (req: AuthRequest, res: Response, next: NextFuncti
 
 // Apply authentication and role check to all admin routes
 router.use(authenticateToken);
-router.use(requireAdminOrManager);
+router.use(requireAdmin);
 
 // 1. Get all users (with search and status filters)
 router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {

@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -34,6 +34,12 @@ app.use('/api/notifications', notificationsRouter);
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date(), service: 'DocFlow Backend API' });
+});
+
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[Global Error]:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Une erreur interne est survenue' });
 });
 
 // Start server

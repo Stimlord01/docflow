@@ -29,10 +29,10 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Format d’image non autorisé (JPG, JPEG, PNG uniquement)'));
+    else cb(new Error('Format d’image non autorisé (JPG, JPEG, PNG, WEBP, GIF uniquement)'));
   }
 });
 

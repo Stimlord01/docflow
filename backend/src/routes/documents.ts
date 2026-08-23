@@ -146,7 +146,7 @@ router.get('/:id/download', authenticateToken, async (req: AuthRequest, res: Res
     }
 
     // Admins and owners can download
-    if (req.userRole !== 'Administrateur' && req.userRole !== 'Gestionnaire' && req.userId !== document.userId) {
+    if (req.userRole !== 'Administrateur' && req.userId !== document.userId) {
       res.status(403).json({ error: 'Accès interdit à ce document' });
       return;
     }

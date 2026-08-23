@@ -124,6 +124,7 @@ function App() {
   const [dragOver, setDragOver] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeUploadCat, setActiveUploadCat] = useState<string>('');
+  const [quickUploadCat, setQuickUploadCat] = useState<string>('');
 
   // Request notification permission
   const requestNotificationPermission = () => {
@@ -180,7 +181,7 @@ function App() {
       setUser(profile);
       
       // Load specific layout data
-      if (profile.role === 'Administrateur' || profile.role === 'Gestionnaire') {
+      if (profile.role === 'Administrateur') {
         setRoute('a-dash');
         loadAdminData();
       } else {
@@ -206,6 +207,10 @@ function App() {
       setDocuments(docs);
       setCategories(cats);
       handleNotificationsUpdate(notifs);
+
+      // Pre-fill quick upload category default
+      const pending = cats.find(c => !docs.some(d => d.cat === c.name));
+      setQuickUploadCat(pending ? pending.name : (cats[0]?.name || 'Identité'));
 
       // Pre-fill profile settings
       const profile = await api.getProfile();
@@ -254,7 +259,7 @@ function App() {
 
   // Fetch admin user search/filter
   useEffect(() => {
-    if (user && (user.role === 'Administrateur' || user.role === 'Gestionnaire')) {
+    if (user && user.role === 'Administrateur') {
       api.getAdminUsers(userSearch, userStatusFilter).then(setAdminUsers).catch(console.error);
     }
   }, [userSearch, userStatusFilter]);
@@ -274,7 +279,7 @@ function App() {
 
     // Refresh data depending on role
     if (user) {
-      if (user.role === 'Administrateur' || user.role === 'Gestionnaire') {
+      if (user.role === 'Administrateur') {
         loadAdminData();
       } else {
         loadUserData();
@@ -299,7 +304,7 @@ function App() {
       setUser(res.user);
       fireToast('valide', `Ravi de vous revoir, ${res.user.name} !`);
       
-      if (res.user.role === 'Administrateur' || res.user.role === 'Gestionnaire') {
+      if (res.user.role === 'Administrateur') {
         setRoute('a-dash');
         loadAdminData();
       } else {
@@ -329,7 +334,7 @@ function App() {
       setUser(res.user);
       fireToast('valide', 'Votre compte a été créé avec succès !');
       
-      if (res.user.role === 'Administrateur' || res.user.role === 'Gestionnaire') {
+      if (res.user.role === 'Administrateur') {
         setRoute('a-dash');
         loadAdminData();
       } else {
@@ -443,7 +448,7 @@ function App() {
       setUploadPct(100);
       setTimeout(() => {
         setUploading(false);
-        fireToast('valide', `${file.name} déposé — en attente de validation`);
+        fireToast('valide', `${file.name} déposé dans la catégorie "${catName}" — en attente de validation`);
         loadUserData();
       }, 350);
     } catch (err: any) {
@@ -466,9 +471,7 @@ function App() {
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      // For drag & drop, default to first required slot that is not yet done
-      const pendingSlot = requiredSlots.find(s => s.todo);
-      const cat = pendingSlot ? pendingSlot.cat : (categories[0]?.name || 'Identité');
+      const cat = quickUploadCat || requiredSlots.find(s => s.todo)?.cat || (categories[0]?.name || 'Identité');
       uploadFileToServer(file, cat);
     }
   };
@@ -969,7 +972,7 @@ function App() {
 
               {/* Navigation lists based on role */}
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {user && (user.role === 'Administrateur' || user.role === 'Gestionnaire') ? (
+                {user && user.role === 'Administrateur' ? (
                   <>
                     <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#94A3B8', letterSpacing: '.4px', textTransform: 'uppercase', margin: '8px 0 6px 11px' }}>
                       Console Admin
@@ -1187,7 +1190,7 @@ function App() {
                   <div style={{
                     position: 'absolute', right: 0, top: '44px', width: '180px', background: '#fff', borderRadius: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0', zIndex: 110, padding: '6px', display: 'flex', flexDirection: 'column'
                   }}>
-                    <button onClick={() => navTo(user?.role === 'Administrateur' || user?.role === 'Gestionnaire' ? 'a-dash' : 'u-dash')} className="hover-bg-slate" style={{
+                    <button onClick={() => navTo(user?.role === 'Administrateur' ? 'a-dash' : 'u-dash')} className="hover-bg-slate" style={{
                       padding: '8px 10px', border: 'none', background: 'transparent', textAlign: 'left', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', color: '#334155'
                     }}>
                       Tableau de bord
@@ -1375,9 +1378,28 @@ function App() {
                             <line x1="12" y1="3" x2="12" y2="15"></line>
                           </svg>
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '5px' }}>Glissez-déposez vos fichiers ici</div>
-                        <p style={{ color: '#64748B', fontSize: '13.5px', margin: '0 0 16px' }}>ou</p>
-                        <button onClick={() => triggerFileInput(requiredSlots.find(s => s.todo)?.cat || 'Identité')} className="hover-brightness" style={{
+                        <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '12px' }}>Glissez-déposez vos fichiers ici</div>
+                        
+                        {/* Category selection for quick deposit */}
+                        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>Catégorie ciblée :</span>
+                          <select 
+                            value={quickUploadCat} 
+                            onChange={(e) => setQuickUploadCat(e.target.value)}
+                            style={{ 
+                              padding: '5px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', 
+                              fontSize: '12.5px', outline: 'none', background: '#fff', cursor: 'pointer',
+                              color: '#334155', fontWeight: 600
+                            }}
+                          >
+                            {categories.map(c => (
+                              <option key={c.id} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <p style={{ color: '#64748B', fontSize: '13.5px', margin: '0 0 12px' }}>ou</p>
+                        <button onClick={() => triggerFileInput(quickUploadCat || requiredSlots.find(s => s.todo)?.cat || 'Identité')} className="hover-brightness" style={{
                           padding: '10px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '13.5px', cursor: 'pointer', boxShadow: '0 6px 16px rgba(14,165,233,.28)'
                         }}>
                           Parcourir les fichiers
