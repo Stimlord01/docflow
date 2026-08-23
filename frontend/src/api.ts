@@ -5,7 +5,7 @@ interface RequestOptions extends RequestInit {
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const token = localStorage.getItem('docflow_token');
+  const token = localStorage.getItem('docflow_token') || sessionStorage.getItem('docflow_token');
   const headers = { ...options.headers };
 
   if (token) {
@@ -38,17 +38,21 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const api = {
+  // Helpers
+  getBaseUrl: () => API_BASE_URL.replace(/\/api$/, ''),
+
   // Auth
   register: (data: any) => request<any>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: any) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getProfile: () => request<any>('/auth/profile', { method: 'GET' }),
   updateProfile: (data: any) => request<any>('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
+  uploadProfilePic: (formData: FormData) => request<any>('/auth/profile-pic', { method: 'POST', body: formData }),
 
   // User Documents
   getDocuments: () => request<any[]>('/documents', { method: 'GET' }),
   uploadDocument: (formData: FormData) => request<any>('/documents/upload', { method: 'POST', body: formData }),
   deleteDocument: (id: string) => request<any>(`/documents/${id}`, { method: 'DELETE' }),
-  downloadDocumentUrl: (id: string) => `${API_BASE_URL}/documents/${id}/download?token=${localStorage.getItem('docflow_token') || ''}`,
+  downloadDocumentUrl: (id: string) => `${API_BASE_URL}/documents/${id}/download?token=${localStorage.getItem('docflow_token') || sessionStorage.getItem('docflow_token') || ''}`,
 
   // Notifications
   getNotifications: () => request<any[]>('/notifications', { method: 'GET' }),

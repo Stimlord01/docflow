@@ -20,6 +20,8 @@ model User {
   role          String         @default("Utilisateur") // "Utilisateur", "Gestionnaire", "Administrateur"
   status        String         @default("incomplet")   // "actif", "incomplet", "bloque"
   joined        DateTime       @default(now())
+  profilePic    String?
+  knownDevices  String?
   documents     Document[]
   notifications Notification[]
   audits        Audit[]

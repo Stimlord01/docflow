@@ -72,7 +72,7 @@ export async function seedDatabase() {
           password: hashedPassword,
           phone: '+33 6 33 21 77 40',
           city: 'Nantes',
-          role: 'Gestionnaire',
+          role: 'Administrateur',
           status: 'actif'
         }
       });

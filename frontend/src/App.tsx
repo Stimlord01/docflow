@@ -79,6 +79,12 @@ function App() {
   const [notifOpen, setNotifOpen] = useState<boolean>(false);
   const [profileMenu, setProfileMenu] = useState<boolean>(false);
 
+  // New States (Remember Me, Cookies, Notifications)
+  const [loginRemember, setLoginRemember] = useState<boolean>(true);
+  const [cookieConsent, setCookieConsent] = useState<boolean>(() => {
+    return localStorage.getItem('docflow_cookies_accepted') === 'true';
+  });
+
   // User States
   const [documents, setDocuments] = useState<DocumentType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -117,9 +123,48 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeUploadCat, setActiveUploadCat] = useState<string>('');
 
+  // Request notification permission
+  const requestNotificationPermission = () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  };
+
+  // Show system notification
+  const showBrowserNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      } catch (err) {
+        console.error('Error displaying system notification:', err);
+      }
+    }
+  };
+
+  // Handle new notifications and compare with old ones to trigger alerts
+  const handleNotificationsUpdate = (newNotifs: NotificationType[]) => {
+    const oldIds = new Set(notifications.map(n => n.id));
+    const newUnread = newNotifs.filter(n => !n.read && !oldIds.has(n.id));
+    
+    // Only show browser notifications if we already had notifications loaded (prevent spamming on first load)
+    if (newUnread.length > 0 && notifications.length > 0) {
+      newUnread.forEach(n => {
+        showBrowserNotification(n.title, n.text);
+      });
+    }
+    setNotifications(newNotifs);
+  };
+
+  // Request notifications permission when user signs in
+  useEffect(() => {
+    if (user) {
+      requestNotificationPermission();
+    }
+  }, [user]);
+
   // Load JWT token on mount
   useEffect(() => {
-    const token = localStorage.getItem('docflow_token');
+    const token = localStorage.getItem('docflow_token') || sessionStorage.getItem('docflow_token');
     if (token) {
       loadProfileAndData();
     }
@@ -158,7 +203,7 @@ function App() {
       ]);
       setDocuments(docs);
       setCategories(cats);
-      setNotifications(notifs);
+      handleNotificationsUpdate(notifs);
 
       // Pre-fill profile settings
       const profile = await api.getProfile();
@@ -185,7 +230,7 @@ function App() {
       setAdminUsers(usersList);
       setCategories(cats);
       setAdminAudits(audits);
-      setNotifications(notifs);
+      handleNotificationsUpdate(notifs);
 
       // Fetch all user documents to review (status: attente)
       const allDocs: any[] = [];
@@ -241,7 +286,14 @@ function App() {
     try {
       setLoading(true);
       const res = await api.login({ email: loginEmail, password: loginPassword });
-      localStorage.setItem('docflow_token', res.token);
+      
+      // Store token in localStorage or sessionStorage depending on checkbox
+      if (loginRemember) {
+        localStorage.setItem('docflow_token', res.token);
+      } else {
+        sessionStorage.setItem('docflow_token', res.token);
+      }
+      
       setUser(res.user);
       fireToast('valide', `Ravi de vous revoir, ${res.user.name} !`);
       
@@ -268,7 +320,10 @@ function App() {
         payload.adminSecret = registerAdminSecret;
       }
       const res = await api.register(payload);
+      
+      // Default to localStorage for new registrations
       localStorage.setItem('docflow_token', res.token);
+      
       setUser(res.user);
       fireToast('valide', 'Votre compte a été créé avec succès !');
       
@@ -290,6 +345,7 @@ function App() {
 
   const logout = () => {
     localStorage.removeItem('docflow_token');
+    sessionStorage.removeItem('docflow_token');
     setUser(null);
     setRoute('landing');
     setNotifOpen(false);
@@ -308,9 +364,29 @@ function App() {
         city: profCity
       });
       setUser(updated);
-      fireToast('info', 'Vos informations ont été enregistrées.');
+      fireToast('valide', 'Votre profil a été mis à jour.');
     } catch (err: any) {
-      fireToast('refuse', err.message || 'Erreur lors de l’enregistrement');
+      fireToast('refuse', err.message || 'Erreur lors de la mise à jour du profil');
+    }
+  };
+
+  const handleProfilePicChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('profilePic', file);
+      const res = await api.uploadProfilePic(formData);
+      
+      // Update state
+      setUser({ ...user, profilePic: res.profilePic });
+      fireToast('valide', 'Photo de profil mise à jour !');
+    } catch (err: any) {
+      fireToast('refuse', err.message || 'Erreur lors de la mise à jour de la photo');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -744,6 +820,20 @@ function App() {
                     }} />
                   </div>
 
+                  {/* "Se souvenir de moi" Checkbox */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
+                    <input 
+                      type="checkbox" 
+                      id="rememberMe" 
+                      checked={loginRemember} 
+                      onChange={(e) => setLoginRemember(e.target.checked)} 
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor="rememberMe" style={{ fontSize: '13px', color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
+                      Se souvenir de moi
+                    </label>
+                  </div>
+
                   <button type="submit" className="hover-brightness" style={{
                     width: '100%', padding: '11px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '16px'
                   }}>
@@ -978,9 +1068,14 @@ function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 700,
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  overflow: 'hidden'
                 }}>
-                  {user ? getInitials(user.name) : 'US'}
+                  {user?.profilePic ? (
+                    <img src={`${api.getBaseUrl()}/${user.profilePic}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    user ? getInitials(user.name) : 'US'
+                  )}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: '13px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1069,14 +1164,19 @@ function App() {
               </div>
 
               {/* Profile options dropdown */}
-              <div style={{ position: 'relative' }}>
+               <div style={{ position: 'relative' }}>
                 <button onClick={() => { setProfileMenu(!profileMenu); setNotifOpen(false); }} className="hover-bg-slate" style={{
                   height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
                 }}>
                   <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%', background: user ? getAvatarColor(user.name) : '#0EA5E9', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700
+                    width: '20px', height: '20px', borderRadius: '50%', background: user ? getAvatarColor(user.name) : '#0EA5E9', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700,
+                    overflow: 'hidden'
                   }}>
-                    {user ? getInitials(user.name) : 'US'}
+                    {user?.profilePic ? (
+                      <img src={`${api.getBaseUrl()}/${user.profilePic}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      user ? getInitials(user.name) : 'US'
+                    )}
                   </div>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>Mon compte</span>
                 </button>
@@ -1312,31 +1412,72 @@ function App() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                           {categories.map((cat) => {
                             const existing = documents.find(d => d.cat === cat.name);
+                            const isValide = existing?.status === 'valide';
+                            const isAttente = existing?.status === 'attente';
+                            const isRefuse = existing?.status === 'refuse';
+                            
                             return (
-                              <div key={cat.id} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '13px' }}>
+                              <div key={cat.id} style={{ 
+                                background: existing ? '#F8FAFC' : '#fff', 
+                                border: '1px solid #E2E8F0', 
+                                borderRadius: '12px', 
+                                padding: '14px 16px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '13px',
+                                opacity: existing ? 0.75 : 1,
+                                transition: 'all 0.2s ease'
+                              }}>
                                 <div style={{
-                                  width: '34px', height: '34px', borderRadius: '9px', background: existing?.status === 'valide' ? '#ECFDF5' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                  width: '34px', height: '34px', borderRadius: '9px', 
+                                  background: isValide ? '#ECFDF5' : (isAttente ? '#FFFBEB' : (isRefuse ? '#FEF2F2' : '#F1F5F9')), 
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                 }}>
-                                  {existing?.status === 'valide' ? (
+                                  {isValide ? (
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.4">
                                       <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                  ) : (isAttente ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.2">
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                  ) : (isRefuse ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.2">
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                                      <line x1="9" y1="9" x2="15" y2="15"></line>
                                     </svg>
                                   ) : (
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
                                       <line x1="12" y1="5" x2="12" y2="19"></line>
                                       <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
-                                  )}
+                                  )))}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: '13.5px' }}>{cat.name}</div>
-                                  <div style={{ fontSize: '11.5px', color: '#94A3B8' }}>Formats : {cat.formats}</div>
+                                  <div style={{ fontWeight: 600, fontSize: '13.5px', color: existing ? '#64748B' : '#0F172A' }}>{cat.name}</div>
+                                  <div style={{ fontSize: '11px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {existing ? `Soumis : ${existing.name}` : `Formats : ${cat.formats} (Max 20 Mo)`}
+                                  </div>
                                 </div>
-                                <button onClick={() => triggerFileInput(cat.name)} className="hover-bg-slate" style={{
-                                  padding: '6px 13px', borderRadius: '8px', border: '1px solid #0EA5E9', background: '#F0F9FF', color: '#0369A1', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
-                                }}>
-                                  Déposer
-                                </button>
+                                {existing ? (
+                                  <button onClick={() => handleDeleteDoc(existing.id)} className="hover-bg-red" style={{
+                                    padding: '6px 10px', borderRadius: '8px', border: '1px solid #FECACA', background: '#FFF5F5', color: '#E11D48', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                                  }} title="Supprimer pour remplacer">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <polyline points="3 6 5 6 21 6"></polyline>
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                    Retirer
+                                  </button>
+                                ) : (
+                                  <button onClick={() => triggerFileInput(cat.name)} className="hover-bg-slate" style={{
+                                    padding: '6px 13px', borderRadius: '8px', border: '1px solid #0EA5E9', background: '#F0F9FF', color: '#0369A1', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+                                  }}>
+                                    Déposer
+                                  </button>
+                                )}
                               </div>
                             );
                           })}
@@ -1446,17 +1587,33 @@ function App() {
                       </div>
 
                       <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '20px 22px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div style={{
-                          width: '62px', height: '62px', borderRadius: '16px',
-                          background: 'linear-gradient(135deg,#0EA5E9,#0369A1)', color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 700
-                        }}>
-                          {user ? getInitials(user.name) : 'AR'}
+                        <div style={{ position: 'relative' }}>
+                          <div style={{
+                            width: '62px', height: '62px', borderRadius: '16px',
+                            background: 'linear-gradient(135deg,#0EA5E9,#0369A1)', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 700,
+                            overflow: 'hidden'
+                          }}>
+                            {user?.profilePic ? (
+                              <img src={`${api.getBaseUrl()}/${user.profilePic}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              user ? getInitials(user.name) : 'AR'
+                            )}
+                          </div>
+                          <label htmlFor="profilePicUpload" style={{
+                            position: 'absolute', bottom: '-4px', right: '-4px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', border: '1px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.15)'
+                          }} title="Modifier la photo de profil">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                              <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                          </label>
+                          <input type="file" id="profilePicUpload" accept="image/*" onChange={handleProfilePicChange} style={{ display: 'none' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: '17px' }}>{user?.name}</div>
                           <div style={{ color: '#64748B', fontSize: '13.5px' }}>
-                            {user?.email} · Membre depuis {user ? new Date(user.joined).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '2026'}
+                            {user?.email} · Membre depuis {user?.joined && user.joined !== 'Invalid Date' ? new Date(user.joined).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '2026'}
                           </div>
                         </div>
                       </div>
@@ -1687,10 +1844,9 @@ function App() {
 
                       {/* Users table */}
                       <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1.6fr 1fr auto', padding: '11px 18px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', borderBottom: '1px solid #F1F5F9', textTransform: 'uppercase' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1fr auto', padding: '11px 18px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', borderBottom: '1px solid #F1F5F9', textTransform: 'uppercase' }}>
                           <span>Utilisateur</span>
                           <span>Rôle</span>
-                          <span>Dossier</span>
                           <span>Statut</span>
                           <span></span>
                         </div>
@@ -1703,13 +1859,18 @@ function App() {
                                 key={u.id}
                                 onClick={() => handleOpenUserDetail(u.id)}
                                 className="hover-bg-light"
-                                style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1.6fr 1fr auto', padding: '12px 18px', alignItems: 'center', borderBottom: '1px solid #F5F7F9', cursor: 'pointer' }}
+                                style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1fr auto', padding: '12px 18px', alignItems: 'center', borderBottom: '1px solid #F5F7F9', cursor: 'pointer' }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
                                   <div style={{
-                                    width: '34px', height: '34px', borderRadius: '9px', background: getAvatarColor(u.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0
+                                    width: '34px', height: '34px', borderRadius: '9px', background: getAvatarColor(u.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', flexShrink: 0,
+                                    overflow: 'hidden'
                                   }}>
-                                    {getInitials(u.name)}
+                                    {u.profilePic ? (
+                                      <img src={`${api.getBaseUrl()}/${u.profilePic}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      getInitials(u.name)
+                                    )}
                                   </div>
                                   <div style={{ minWidth: 0 }}>
                                     <div style={{ fontWeight: 600, fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
@@ -1717,12 +1878,6 @@ function App() {
                                   </div>
                                 </div>
                                 <span style={{ fontSize: '13px', color: '#475569' }}>{u.role}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                                  <div style={{ flex: 1, maxWidth: '90px', height: '6px', background: '#EEF2F6', borderRadius: '9px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${u.prog}%`, height: '100%', borderRadius: '999px', background: u.prog === 100 ? '#10B981' : (u.prog < 34 ? '#EF4444' : '#0EA5E9') }}></div>
-                                  </div>
-                                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748B' }}>{u.valid}/{u.total}</span>
-                                </div>
                                 <span style={getBadgeStyle(u.status).style}>
                                   <span style={getBadgeStyle(u.status).dotStyle}></span>
                                   {getBadgeStyle(u.status).label}
@@ -1753,9 +1908,14 @@ function App() {
                       <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '22px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
                         <div style={{
                           width: '62px', height: '62px', borderRadius: '16px', background: getAvatarColor(selectedUser.name), color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 700
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 700,
+                          overflow: 'hidden'
                         }}>
-                          {getInitials(selectedUser.name)}
+                          {selectedUser.profilePic ? (
+                            <img src={`${api.getBaseUrl()}/${selectedUser.profilePic}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            getInitials(selectedUser.name)
+                          )}
                         </div>
                         <div style={{ flex: 1, minWidth: '200px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1766,7 +1926,7 @@ function App() {
                             </span>
                           </div>
                           <div style={{ color: '#64748B', fontSize: '13.5px', marginTop: '3px' }}>
-                            {selectedUser.email} · ID: {selectedUser.id.substring(0, 8)} · Inscrit {new Date(selectedUser.joined).toLocaleDateString('fr-FR')}
+                            {selectedUser.email} · ID: {selectedUser.id.substring(0, 8)} · Inscrit {selectedUser.joined && selectedUser.joined !== 'Invalid Date' ? new Date(selectedUser.joined).toLocaleDateString('fr-FR') : 'N/A'}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '9px' }}>
@@ -1794,13 +1954,6 @@ function App() {
                             <div>
                               <div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600, marginBottom: '2px' }}>Rôle</div>
                               <div style={{ fontSize: '13.5px', color: '#334155' }}>{selectedUser.role}</div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600, marginBottom: '6px' }}>Complétude</div>
-                              <div style={{ height: '7px', background: '#EEF2F6', borderRadius: '9px', overflow: 'hidden' }}>
-                                <div style={{ width: `${selectedUser.prog}%`, height: '100%', background: selectedUser.prog === 100 ? '#10B981' : '#0EA5E9' }}></div>
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#64748B', marginTop: '5px' }}>{selectedUser.valid}/{selectedUser.total} documents validés</div>
                             </div>
                           </div>
                         </div>
@@ -2097,6 +2250,34 @@ function App() {
                 Valider
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= COOKIES & TERMS CONSENT BANNER ================= */}
+      {!cookieConsent && (
+        <div style={{
+          position: 'fixed', bottom: '20px', left: '20px', right: '20px',
+          background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '18px 20px',
+          boxShadow: '0 10px 25px rgba(15,23,42,0.15)', zIndex: 999, display: 'flex', flexDirection: 'column', gap: '12px',
+          animation: 'toastIn 0.3s ease', maxWidth: '420px'
+        }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Respect de votre vie privée 🍪</div>
+          <p style={{ fontSize: '12.5px', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+            Nous utilisons des cookies essentiels pour assurer le bon fonctionnement de la plateforme (connexion, sécurité). En poursuivant votre navigation, vous acceptez nos{' '}
+            <a href="#" onClick={(e) => { e.preventDefault(); alert("Conditions d'Utilisation :\n\nCette plateforme (DocFlow) est destinée au dépôt sécurisé de pièces justificatives.\n\nDonnées collectées : Vos documents d'identité et justificatifs sont chiffrés et stockés dans un serveur sécurisé. Ils sont visibles uniquement par vous et les administrateurs pour la validation de votre dossier.\n\nDroits : Conformément au RGPD, vous disposez d'un droit d'accès et de suppression de vos données, exerçable directement en supprimant vos documents ou votre compte."); }} style={{ color: '#0284C7', textDecoration: 'underline', fontWeight: 600 }}>
+              conditions d'utilisation (RGPD)
+            </a>.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button onClick={() => {
+              localStorage.setItem('docflow_cookies_accepted', 'true');
+              setCookieConsent(true);
+            }} className="hover-brightness" style={{
+              padding: '7px 15px', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+            }}>
+              Accepter & Fermer
+            </button>
           </div>
         </div>
       )}

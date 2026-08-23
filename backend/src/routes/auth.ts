@@ -3,9 +3,38 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { sendEmail } from '../utils/email';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'docflow-super-secret-key-2026';
+
+// Multer setup for profile picture
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Format d’image non autorisé (JPG, JPEG, PNG uniquement)'));
+  }
+});
 
 // Register a new user
 router.post('/register', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -38,6 +67,9 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
     }
     const status = role === 'Administrateur' ? 'actif' : 'incomplet';
 
+    // Record the device key for the new account
+    const deviceKey = `${req.ip || 'unknown'}_${req.headers['user-agent'] || 'unknown'}`;
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -45,6 +77,7 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
         password: hashedPassword,
         role,
         status,
+        knownDevices: deviceKey,
       },
     });
 
@@ -59,6 +92,13 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
       },
     });
 
+    // Send welcome email
+    await sendEmail({
+      to: user.email,
+      subject: 'Bienvenue sur DocFlow !',
+      text: `Bonjour ${user.name},\n\nVotre compte DocFlow a été créé avec succès en tant que ${role}.\n\nVous pouvez désormais vous connecter et gérer vos justificatifs.\n\nCordialement,\nL'équipe DocFlow`
+    });
+
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(211).json({
@@ -69,6 +109,7 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
         email: user.email,
         role: user.role,
         status: user.status,
+        joined: user.joined,
       },
     });
   } catch (error: any) {
@@ -101,7 +142,26 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Log connection
+    // Detect first connection on a new device (IP + User-Agent combination)
+    const deviceKey = `${req.ip || 'unknown'}_${req.headers['user-agent'] || 'unknown'}`;
+    const known = user.knownDevices ? user.knownDevices.split(',') : [];
+    if (!known.includes(deviceKey)) {
+      // Send warning e-mail alert
+      await sendEmail({
+        to: user.email,
+        subject: 'DocFlow - Nouvelle connexion détectée',
+        text: `Bonjour ${user.name},\n\nUne nouvelle connexion à votre compte DocFlow a été détectée depuis un nouvel appareil.\n\nDate : ${new Date().toLocaleString('fr-FR')}\nAdresse IP : ${req.ip || 'Inconnue'}\nNavigateur : ${req.headers['user-agent'] || 'Inconnu'}\n\nSi vous êtes à l'origine de cette connexion, vous pouvez ignorer cet e-mail. Sinon, veuillez modifier immédiatement votre mot de passe.\n\nCordialement,\nL'équipe DocFlow`
+      });
+
+      // Append new device key to db
+      known.push(deviceKey);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { knownDevices: known.join(',') }
+      });
+    }
+
+    // Log connection in audit
     await prisma.audit.create({
       data: {
         who: user.name,
@@ -120,6 +180,8 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
         email: user.email,
         role: user.role,
         status: user.status,
+        joined: user.joined,
+        profilePic: user.profilePic,
       },
     });
   } catch (error: any) {
@@ -144,6 +206,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
         role: true,
         status: true,
         joined: true,
+        profilePic: true,
       },
     });
 
@@ -195,6 +258,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
         role: true,
         status: true,
         joined: true,
+        profilePic: true,
       },
     });
 
@@ -213,6 +277,41 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   } catch (error: any) {
     console.error('Profile update error:', error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour du profil' });
+  }
+});
+
+// Upload profile picture
+router.post('/profile-pic', authenticateToken, upload.single('profilePic'), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const file = req.file;
+
+    if (!file) {
+      res.status(400).json({ error: 'Aucun fichier fourni' });
+      return;
+    }
+
+    const relativePath = `uploads/${file.filename}`;
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { profilePic: relativePath },
+    });
+
+    await prisma.audit.create({
+      data: {
+        who: user.name,
+        act: 'a mis à jour sa photo de profil',
+        obj: user.email,
+        tag: 'info',
+        userId: user.id,
+      },
+    });
+
+    res.json({ profilePic: relativePath });
+  } catch (error: any) {
+    console.error('Profile picture upload error:', error);
+    res.status(500).json({ error: error.message || 'Erreur lors du téléversement de la photo de profil' });
   }
 });
 
