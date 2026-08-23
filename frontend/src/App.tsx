@@ -30,6 +30,8 @@ interface UserType {
   docs?: DocumentType[];
   profilePic?: string;
   knownDevices?: string;
+  emailNotifications?: boolean;
+  emailVerified?: boolean;
 }
 
 interface CategoryType {
@@ -99,6 +101,9 @@ function App() {
   const [profAddress, setProfAddress] = useState<string>('');
   const [profCity, setProfCity] = useState<string>('');
   const [profEmailNotif, setProfEmailNotif] = useState<boolean>(true);
+  const [verifModalOpen, setVerifModalOpen] = useState<boolean>(false);
+  const [verifCode, setVerifCode] = useState<string>('');
+  const [verifLoading, setVerifLoading] = useState<boolean>(false);
 
   // Admin States
   const [adminUsers, setAdminUsers] = useState<UserType[]>([]);
@@ -359,6 +364,47 @@ function App() {
     setRoute('landing');
     setNotifOpen(false);
     setProfileMenu(false);
+  };
+
+  const handleEmailNotifToggle = async (checked: boolean) => {
+    if (checked) {
+      if (user?.emailVerified) {
+        setProfEmailNotif(true);
+      } else {
+        // Trigger verification code email
+        try {
+          setLoading(true);
+          await api.sendVerificationCode();
+          setVerifCode('');
+          setVerifModalOpen(true);
+          fireToast('info', 'Un code de vérification a été envoyé à votre e-mail.');
+        } catch (err: any) {
+          fireToast('refuse', err.message || 'Erreur lors de l\'envoi du code');
+        } finally {
+          setLoading(false);
+        }
+      }
+    } else {
+      setProfEmailNotif(false);
+    }
+  };
+
+  const handleVerifyCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifCode) return;
+
+    try {
+      setVerifLoading(true);
+      const res = await api.verifyCode(verifCode);
+      setUser(res.user);
+      setProfEmailNotif(true);
+      setVerifModalOpen(false);
+      fireToast('valide', 'E-mail vérifié et notifications activées !');
+    } catch (err: any) {
+      fireToast('refuse', err.message || 'Code de vérification incorrect');
+    } finally {
+      setVerifLoading(false);
+    }
   };
 
   // User coordinate update
@@ -1675,11 +1721,14 @@ function App() {
                                 type="checkbox" 
                                 id="profEmailNotif" 
                                 checked={profEmailNotif} 
-                                onChange={(e) => setProfEmailNotif(e.target.checked)} 
+                                onChange={(e) => handleEmailNotifToggle(e.target.checked)} 
                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                               />
-                              <label htmlFor="profEmailNotif" style={{ fontSize: '13.5px', color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
+                              <label htmlFor="profEmailNotif" style={{ fontSize: '13.5px', color: '#475569', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 Recevoir les notifications par e-mail (validation ou refus de document)
+                                {user?.emailVerified && (
+                                  <span style={{ fontSize: '11px', color: '#10B981', background: '#ECFDF5', padding: '1px 6px', borderRadius: '6px', fontWeight: 600 }}>Vérifié</span>
+                                )}
                               </label>
                             </div>
                           </div>
@@ -2292,6 +2341,79 @@ function App() {
                 Valider
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EMAIL VERIFICATION MODAL ================= */}
+      {verifModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#fff', width: '92%', maxWidth: '380px', borderRadius: '16px',
+            border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 20px 40px rgba(15,23,42,0.22)',
+            animation: 'scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 800, fontSize: '17px', color: '#0F172A' }}>Vérification de l'e-mail</div>
+              <button 
+                onClick={() => { setVerifModalOpen(false); setProfEmailNotif(false); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}
+                className="hover-bg-slate"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 16px', lineHeight: '1.4' }}>
+              Un code de validation à 6 chiffres a été envoyé à l'adresse <strong>{user?.email}</strong>. Veuillez le saisir ci-dessous pour confirmer votre e-mail.
+            </p>
+
+            <form onSubmit={handleVerifyCodeSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <input 
+                  type="text" 
+                  maxLength={6}
+                  placeholder="Code de validation" 
+                  value={verifCode}
+                  onChange={(e) => setVerifCode(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    width: '100%', padding: '12px', borderRadius: '9px', border: '1px solid #E2E8F0',
+                    fontSize: '18px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', outline: 'none'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setVerifModalOpen(false); setProfEmailNotif(false); }}
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#fff', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', color: '#475569' }}
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={verifLoading}
+                  className="hover-brightness"
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: 'none',
+                    background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff',
+                    fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  {verifLoading ? 'Vérification...' : 'Valider'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

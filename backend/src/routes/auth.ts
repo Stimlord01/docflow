@@ -319,4 +319,100 @@ router.post('/profile-pic', authenticateToken, upload.single('profilePic'), asyn
   }
 });
 
+// Send email verification code
+router.post('/send-verification-code', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    
+    // Generate 6-digit random code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiration
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerificationCode: code,
+        emailVerificationExpires: expires
+      }
+    });
+
+    // Send code via email
+    await sendEmail({
+      to: user.email,
+      subject: 'DocFlow - Code de vérification e-mail',
+      text: `Votre code de vérification pour les notifications par e-mail est : ${code}\nCe code expire dans 15 minutes.`,
+      html: `<p>Bonjour ${user.name},</p><p>Votre code de vérification pour les notifications par e-mail est : <strong style="font-size: 18px; color: #0EA5E9; letter-spacing: 1px;">${code}</strong></p><p>Ce code expire dans 15 minutes.</p><p>Cordialement,<br/>L'équipe DocFlow</p>`
+    });
+
+    res.json({ message: 'Code de vérification envoyé avec succès' });
+  } catch (error: any) {
+    console.error('Send verification code error:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi du code de vérification' });
+  }
+});
+
+// Verify email verification code
+router.post('/verify-code', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const { code } = req.body;
+
+    if (!code) {
+      res.status(400).json({ error: 'Le code de vérification est requis' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: 'Utilisateur introuvable' });
+      return;
+    }
+
+    if (!user.emailVerificationCode || !user.emailVerificationExpires) {
+      res.status(400).json({ error: 'Aucun code de vérification en cours' });
+      return;
+    }
+
+    if (new Date() > user.emailVerificationExpires) {
+      res.status(400).json({ error: 'Le code de vérification a expiré' });
+      return;
+    }
+
+    if (user.emailVerificationCode !== code) {
+      res.status(400).json({ error: 'Code de vérification incorrect' });
+      return;
+    }
+
+    // Success! Update user status
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerified: true,
+        emailNotifications: true,
+        emailVerificationCode: null,
+        emailVerificationExpires: null
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        city: true,
+        address: true,
+        role: true,
+        status: true,
+        joined: true,
+        profilePic: true,
+        emailNotifications: true,
+        emailVerified: true
+      }
+    });
+
+    res.json({ message: 'E-mail vérifié avec succès et notifications activées', user: updatedUser });
+  } catch (error: any) {
+    console.error('Verify code error:', error);
+    res.status(500).json({ error: 'Erreur lors de la vérification du code' });
+  }
+});
+
 export default router;

@@ -60,6 +60,10 @@ router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
         documents: {
           select: {
             id: true,
+            name: true,
+            cat: true,
+            size: true,
+            date: true,
             status: true
           }
         }
@@ -95,7 +99,8 @@ router.get('/users', async (req: AuthRequest, res: Response): Promise<void> => {
         prog,
         valid: validDocs,
         total: requiredCategoriesCount,
-        init: initials || 'UT'
+        init: initials || 'UT',
+        docs: user.documents
       };
     });
 

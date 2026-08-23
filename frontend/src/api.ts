@@ -47,6 +47,8 @@ export const api = {
   getProfile: () => request<any>('/auth/profile', { method: 'GET' }),
   updateProfile: (data: any) => request<any>('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
   uploadProfilePic: (formData: FormData) => request<any>('/auth/profile-pic', { method: 'POST', body: formData }),
+  sendVerificationCode: () => request<any>('/auth/send-verification-code', { method: 'POST' }),
+  verifyCode: (code: string) => request<any>('/auth/verify-code', { method: 'POST', body: JSON.stringify({ code }) }),
 
   // User Documents
   getDocuments: () => request<any[]>('/documents', { method: 'GET' }),

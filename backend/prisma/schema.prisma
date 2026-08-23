@@ -22,7 +22,10 @@ model User {
   joined        DateTime       @default(now())
   profilePic    String?
   knownDevices  String?
-  emailNotifications Boolean   @default(true)
+  emailNotifications Boolean   @default(false)
+  emailVerified      Boolean   @default(false)
+  emailVerificationCode String?
+  emailVerificationExpires DateTime?
   documents     Document[]
   notifications Notification[]
   audits        Audit[]
