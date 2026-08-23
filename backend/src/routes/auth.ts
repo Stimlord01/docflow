@@ -12,7 +12,9 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'docflow-super-secret-key-2026';
 
 // Multer setup for profile picture
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+const UPLOAD_DIR = process.env.RENDER === 'true'
+  ? '/uploads'
+  : path.join(__dirname, '../../uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }

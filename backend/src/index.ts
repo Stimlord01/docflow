@@ -22,8 +22,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serving uploaded files static directory (privately controlled by routes, but this route could serve as fallback if needed)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serving uploaded files static directory
+const UPLOAD_STATIC_DIR = process.env.RENDER === 'true'
+  ? '/uploads'
+  : path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(UPLOAD_STATIC_DIR));
 
 // Routes API registration
 app.use('/api/auth', authRouter);

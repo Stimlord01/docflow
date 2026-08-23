@@ -8,7 +8,9 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 // Ensure uploads folder exists
-const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+const UPLOAD_DIR = process.env.RENDER === 'true'
+  ? '/uploads'
+  : path.join(__dirname, '../../uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
