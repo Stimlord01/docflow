@@ -28,6 +28,8 @@ interface UserType {
   total: number;
   init: string;
   docs?: DocumentType[];
+  profilePic?: string;
+  knownDevices?: string;
 }
 
 interface CategoryType {
