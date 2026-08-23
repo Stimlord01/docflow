@@ -1398,7 +1398,6 @@ function App() {
                           </select>
                         </div>
 
-                        <p style={{ color: '#64748B', fontSize: '13.5px', margin: '0 0 12px' }}>ou</p>
                         <button onClick={() => triggerFileInput(quickUploadCat || requiredSlots.find(s => s.todo)?.cat || 'Identité')} className="hover-brightness" style={{
                           padding: '10px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '13.5px', cursor: 'pointer', boxShadow: '0 6px 16px rgba(14,165,233,.28)'
                         }}>

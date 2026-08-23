@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "node dist/index.js",
-    "build": "tsc && prisma generate",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
@@ -23,6 +23,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.5",
     "pg": "^8.23.0"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.2",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.21.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.9.1",
