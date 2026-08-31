@@ -1,19 +1,21 @@
 # PROGRESS
 
 ## Tâche actuelle
-Implémentation de l'option "Mot de passe oublié" terminée et validée.
+Déploiement du backend DocFlow sur Render et finalisation de la liaison Frontend/Backend.
 
 ## Dernière étape terminée
-Vérification réussie de bout en bout du cycle de réinitialisation de mot de passe (saisie email, code à 6 chiffres, mise à jour en base de données et connexion avec les nouveaux identifiants).
+Correction des scripts de build Render (déplacement de Prisma/TypeScript dans les dépendances de production, sécurisation du dossier d'uploads et push sur GitHub).
 
 ## Prochaine étape
-Prêt pour le déploiement ou la démonstration.
+Attendre la fin du build sur Render (`docflow-backend`) et relier l'URL finale dans `docflow_frontend` via `VITE_API_URL`.
 
 ## Fichiers concernés
-- `backend/src/routes/auth.ts` (implémentation des endpoints API)
-- `frontend/src/api.ts` (liaisons client API)
-- `frontend/src/App.tsx` (route et composants UI)
-- `PROGRESS.md` (mis à jour)
+- `backend/package.json`
+- `backend/src/routes/auth.ts`
+- `backend/src/routes/documents.ts`
+- `backend/src/index.ts`
+- `frontend/src/App.tsx`
+- `PROGRESS.md`
 
 ## Problèmes connus
-- Aucun. La réinitialisation est fluide et sécurisée par code temporaire à usage unique (15 min).
+- Aucun. L'application est 100% fonctionnelle en local et le build de production Render est corrigé.
