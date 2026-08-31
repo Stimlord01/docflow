@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import authRouter from './routes/auth';
 import documentsRouter from './routes/documents';
 import adminRouter from './routes/admin';
@@ -23,9 +24,20 @@ app.use(cors({
 app.use(express.json());
 
 // Serving uploaded files static directory
-const UPLOAD_STATIC_DIR = process.env.RENDER === 'true'
-  ? '/uploads'
-  : path.join(__dirname, '../uploads');
+const getUploadStaticDir = (): string => {
+  try {
+    if (process.env.RENDER === 'true' && fs.existsSync('/uploads')) {
+      return '/uploads';
+    }
+  } catch {}
+  const localDir = path.join(__dirname, '../uploads');
+  if (!fs.existsSync(localDir)) {
+    try { fs.mkdirSync(localDir, { recursive: true }); } catch {}
+  }
+  return localDir;
+};
+
+const UPLOAD_STATIC_DIR = getUploadStaticDir();
 app.use('/uploads', express.static(UPLOAD_STATIC_DIR));
 
 // Routes API registration

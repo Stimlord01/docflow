@@ -11,13 +11,29 @@ const fs_1 = __importDefault(require("fs"));
 const db_1 = __importDefault(require("../db"));
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-// Ensure uploads folder exists
-const UPLOAD_DIR = process.env.RENDER === 'true'
-    ? '/uploads'
-    : path_1.default.join(__dirname, '../../uploads');
-if (!fs_1.default.existsSync(UPLOAD_DIR)) {
-    fs_1.default.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+// Ensure uploads folder exists safely
+const getUploadDir = () => {
+    if (process.env.RENDER === 'true') {
+        try {
+            if (!fs_1.default.existsSync('/uploads')) {
+                fs_1.default.mkdirSync('/uploads', { recursive: true });
+            }
+            return '/uploads';
+        }
+        catch {
+            // Root /uploads not writable on Render free tier without attached disk, fallback
+        }
+    }
+    const localDir = path_1.default.join(__dirname, '../../uploads');
+    if (!fs_1.default.existsSync(localDir)) {
+        try {
+            fs_1.default.mkdirSync(localDir, { recursive: true });
+        }
+        catch { }
+    }
+    return localDir;
+};
+const UPLOAD_DIR = getUploadDir();
 // Multer setup
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {

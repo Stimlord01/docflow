@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const documents_1 = __importDefault(require("./routes/documents"));
 const admin_1 = __importDefault(require("./routes/admin"));
@@ -24,9 +25,23 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 // Serving uploaded files static directory
-const UPLOAD_STATIC_DIR = process.env.RENDER === 'true'
-    ? '/uploads'
-    : path_1.default.join(__dirname, '../uploads');
+const getUploadStaticDir = () => {
+    try {
+        if (process.env.RENDER === 'true' && fs_1.default.existsSync('/uploads')) {
+            return '/uploads';
+        }
+    }
+    catch { }
+    const localDir = path_1.default.join(__dirname, '../uploads');
+    if (!fs_1.default.existsSync(localDir)) {
+        try {
+            fs_1.default.mkdirSync(localDir, { recursive: true });
+        }
+        catch { }
+    }
+    return localDir;
+};
+const UPLOAD_STATIC_DIR = getUploadStaticDir();
 app.use('/uploads', express_1.default.static(UPLOAD_STATIC_DIR));
 // Routes API registration
 app.use('/api/auth', auth_1.default);

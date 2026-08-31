@@ -7,13 +7,26 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Ensure uploads folder exists
-const UPLOAD_DIR = process.env.RENDER === 'true'
-  ? '/uploads'
-  : path.join(__dirname, '../../uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+// Ensure uploads folder exists safely
+const getUploadDir = (): string => {
+  if (process.env.RENDER === 'true') {
+    try {
+      if (!fs.existsSync('/uploads')) {
+        fs.mkdirSync('/uploads', { recursive: true });
+      }
+      return '/uploads';
+    } catch {
+      // Root /uploads not writable on Render free tier without attached disk, fallback
+    }
+  }
+  const localDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(localDir)) {
+    try { fs.mkdirSync(localDir, { recursive: true }); } catch {}
+  }
+  return localDir;
+};
+
+const UPLOAD_DIR = getUploadDir();
 
 // Multer setup
 const storage = multer.diskStorage({

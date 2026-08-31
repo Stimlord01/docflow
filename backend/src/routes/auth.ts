@@ -12,12 +12,25 @@ const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'docflow-super-secret-key-2026';
 
 // Multer setup for profile picture
-const UPLOAD_DIR = process.env.RENDER === 'true'
-  ? '/uploads'
-  : path.join(__dirname, '../../uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+const getUploadDir = (): string => {
+  if (process.env.RENDER === 'true') {
+    try {
+      if (!fs.existsSync('/uploads')) {
+        fs.mkdirSync('/uploads', { recursive: true });
+      }
+      return '/uploads';
+    } catch {
+      // Root /uploads not writable on Render free tier without attached disk, fallback
+    }
+  }
+  const localDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(localDir)) {
+    try { fs.mkdirSync(localDir, { recursive: true }); } catch {}
+  }
+  return localDir;
+};
+
+const UPLOAD_DIR = getUploadDir();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
