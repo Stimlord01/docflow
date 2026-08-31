@@ -23,12 +23,21 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   });
 
   if (!response.ok) {
-    let errorMessage = 'Une erreur est survenue';
+    let errorMessage = `Erreur (${response.status})`;
     try {
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorMessage;
+      const text = await response.text();
+      try {
+        const errorData = JSON.parse(text);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        if (response.status === 404) {
+          errorMessage = "Le serveur est en cours de mise à jour ou cette fonctionnalité n'est pas encore déployée (404).";
+        } else if (response.status === 502 || response.status === 503) {
+          errorMessage = "Le serveur est en train de démarrer. Veuillez patienter quelques secondes et réessayer.";
+        }
+      }
     } catch {
-      // Ignore parsing error, keep fallback
+      // Keep fallback
     }
     throw new Error(errorMessage);
   }
