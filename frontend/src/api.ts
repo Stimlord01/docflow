@@ -49,6 +49,8 @@ export const api = {
   uploadProfilePic: (formData: FormData) => request<any>('/auth/profile-pic', { method: 'POST', body: formData }),
   sendVerificationCode: () => request<any>('/auth/send-verification-code', { method: 'POST' }),
   verifyCode: (code: string) => request<any>('/auth/verify-code', { method: 'POST', body: JSON.stringify({ code }) }),
+  forgotPassword: (email: string) => request<any>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (data: any) => request<any>('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // User Documents
   getDocuments: () => request<any[]>('/documents', { method: 'GET' }),

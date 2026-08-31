@@ -1,24 +1,19 @@
 # PROGRESS
 
 ## Tâche actuelle
-- [x] Projet entièrement hébergé et fonctionnel dans le cloud.
+Implémentation de l'option "Mot de passe oublié" terminée et validée.
 
 ## Dernière étape terminée
-- [x] Backend déployé avec succès sur Render : `https://docflow-ama0.onrender.com`
-- [x] Frontend déployé avec succès sur Render (Site statique) avec redirection des routes et liaison à l'API de production.
-- [x] Synchronisation et sauvegarde du code effectuée sur le dépôt GitHub.
+Vérification réussie de bout en bout du cycle de réinitialisation de mot de passe (saisie email, code à 6 chiffres, mise à jour en base de données et connexion avec les nouveaux identifiants).
 
-## Statut global
-- **Base de données** : PostgreSQL managée (Neon.tech) — Opérationnelle
-- **Backend API** : Express.js + Prisma sur Render (Web Service) — Opérationnel
-- **Frontend** : React + Vite sur Render (Static Site) — Opérationnel
-- **Stockage fichiers** : Persistant via volume Render — Opérationnel
+## Prochaine étape
+Prêt pour le déploiement ou la démonstration.
 
-## Fichiers configurés
-- `frontend/src/api.ts` (API dynamique)
-- `frontend/src/App.tsx` (Correction des erreurs de typage TypeScript)
-- `PROGRESS.md` (Finalisé)
+## Fichiers concernés
+- `backend/src/routes/auth.ts` (implémentation des endpoints API)
+- `frontend/src/api.ts` (liaisons client API)
+- `frontend/src/App.tsx` (route et composants UI)
+- `PROGRESS.md` (mis à jour)
 
 ## Problèmes connus
-- Aucun. L'application est entièrement déployée, sécurisée, fonctionnelle et prête pour la production.
-
+- Aucun. La réinitialisation est fluide et sécurisée par code temporaire à usage unique (15 min).

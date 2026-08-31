@@ -192,6 +192,110 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
   }
 });
 
+// Memory store for forgot password reset codes
+const resetCodes = new Map<string, { code: string; expires: number }>();
+
+// Forgot Password - Step 1: Request code
+router.post('/forgot-password', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: 'L\'adresse e-mail est requise' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(404).json({ error: 'Aucun compte n\'est associé à cette adresse e-mail' });
+      return;
+    }
+
+    // Generate a 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+
+    resetCodes.set(email.toLowerCase(), { code, expires });
+
+    // Send email with the code
+    await sendEmail({
+      to: email,
+      subject: 'DocFlow - Réinitialisation de votre mot de passe',
+      text: `Bonjour ${user.name},\n\nVous avez demandé la réinitialisation du mot de passe de votre compte DocFlow.\n\nVotre code de réinitialisation à 6 chiffres est : ${code}\n\nCe code est valable pendant 15 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.\n\nCordialement,\nL'équipe DocFlow`
+    });
+
+    res.json({ message: 'Un code de réinitialisation a été envoyé par e-mail.' });
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Erreur lors de la demande de réinitialisation' });
+  }
+});
+
+// Reset Password - Step 2: Validate code & set new password
+router.post('/reset-password', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      res.status(400).json({ error: 'Tous les champs (email, code, nouveau mot de passe) sont requis' });
+      return;
+    }
+
+    const key = email.toLowerCase();
+    const resetData = resetCodes.get(key);
+
+    if (!resetData) {
+      res.status(400).json({ error: 'Aucune demande active de réinitialisation trouvée ou code expiré' });
+      return;
+    }
+
+    if (resetData.code !== code.trim()) {
+      res.status(400).json({ error: 'Le code de réinitialisation est incorrect' });
+      return;
+    }
+
+    if (Date.now() > resetData.expires) {
+      resetCodes.delete(key);
+      res.status(400).json({ error: 'Le code de réinitialisation a expiré' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(404).json({ error: 'Utilisateur introuvable' });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword }
+    });
+
+    // Delete used reset code
+    resetCodes.delete(key);
+
+    // Create audit log
+    await prisma.audit.create({
+      data: {
+        who: user.name,
+        act: 'a réinitialisé',
+        obj: 'son mot de passe',
+        tag: 'info',
+        userId: user.id
+      }
+    });
+
+    res.json({ message: 'Votre mot de passe a été réinitialisé avec succès.' });
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Erreur lors de la réinitialisation du mot de passe' });
+  }
+});
+
 // Get user profile details
 router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

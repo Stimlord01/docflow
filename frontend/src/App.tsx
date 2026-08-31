@@ -75,6 +75,12 @@ function App() {
   const [registerIsAdmin, setRegisterIsAdmin] = useState<boolean>(false);
   const [registerAdminSecret, setRegisterAdminSecret] = useState<string>('');
 
+  // Forgot password inputs
+  const [forgotEmail, setForgotEmail] = useState<string>('');
+  const [forgotCode, setForgotCode] = useState<string>('');
+  const [forgotNewPassword, setForgotNewPassword] = useState<string>('');
+  const [forgotStep, setForgotStep] = useState<number>(1);
+
   // Toast
   const [toast, setToast] = useState<{ type: string; msg: string } | null>(null);
   const toastTimeout = useRef<any>(null);
@@ -351,7 +357,42 @@ function App() {
     }
   };
 
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const res = await api.forgotPassword(forgotEmail);
+      fireToast('valide', res.message || 'Code envoyé !');
+      setForgotStep(2);
+    } catch (err: any) {
+      fireToast('refuse', err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const res = await api.resetPassword({
+        email: forgotEmail,
+        code: forgotCode,
+        newPassword: forgotNewPassword,
+      });
+      fireToast('valide', res.message || 'Mot de passe réinitialisé !');
+      setRoute('login');
+      // Reset inputs
+      setForgotEmail('');
+      setForgotCode('');
+      setForgotNewPassword('');
+      setForgotStep(1);
+    } catch (err: any) {
+      fireToast('refuse', err.message || 'Code invalide ou expiré');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem('docflow_token');
@@ -689,7 +730,7 @@ function App() {
     return colors[hash % colors.length];
   };
 
-  const isAuthPage = ['landing', 'login', 'register'].includes(route);
+  const isAuthPage = ['landing', 'login', 'register', 'forgot'].includes(route);
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
   return (
@@ -863,7 +904,7 @@ function App() {
                   <div style={{ marginBottom: '18px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155' }}>Mot de passe</label>
-                      <a href="#" style={{ fontSize: '12px' }}>Mot de passe oublié ?</a>
+                      <a href="#" onClick={(e) => { e.preventDefault(); setRoute('forgot'); setForgotStep(1); }} style={{ fontSize: '12px' }}>Mot de passe oublié ?</a>
                     </div>
                     <input type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} style={{
                       width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none'
@@ -975,6 +1016,72 @@ function App() {
                     <a href="#" onClick={(e) => { e.preventDefault(); setRoute('landing'); }} style={{ fontSize: '13px' }}>← Retour à l'accueil</a>
                   </div>
                 </form>
+              )}
+
+              {/* ===== FORGOT PASSWORD PAGE ===== */}
+              {route === 'forgot' && (
+                <div>
+                  {forgotStep === 1 ? (
+                    <form onSubmit={handleForgotPasswordRequest}>
+                      <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.5px', marginBottom: '6px', color: '#0F172A' }}>Mot de passe oublié</h2>
+                      <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>
+                        Saisissez votre adresse e-mail pour recevoir un code de réinitialisation.
+                      </p>
+
+                      <div style={{ marginBottom: '18px' }}>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Adresse e-mail</label>
+                        <input type="email" required placeholder="a.rousseau@mail.fr" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none'
+                        }} />
+                      </div>
+
+                      <button type="submit" className="hover-brightness" style={{
+                        width: '100%', padding: '11px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '16px'
+                      }}>
+                        Envoyer le code
+                      </button>
+
+                      <div style={{ textAlign: 'center', fontSize: '13.5px', color: '#64748B' }}>
+                        Vous vous en souvenez ? <a href="#" onClick={(e) => { e.preventDefault(); setRoute('login'); }}>Se connecter</a>
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); setRoute('landing'); }} style={{ fontSize: '13px' }}>← Retour à l'accueil</a>
+                      </div>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleResetPassword}>
+                      <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-.5px', marginBottom: '6px', color: '#0F172A' }}>Nouveau mot de passe</h2>
+                      <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>
+                        Saisissez le code reçu par e-mail et définissez votre nouveau mot de passe.
+                      </p>
+
+                      <div style={{ marginBottom: '14px' }}>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Code de réinitialisation (6 chiffres)</label>
+                        <input type="text" required maxLength={6} placeholder="Ex: 123456" value={forgotCode} onChange={(e) => setForgotCode(e.target.value)} style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', letterSpacing: '2px', textAlign: 'center', fontWeight: 'bold'
+                        }} />
+                      </div>
+
+                      <div style={{ marginBottom: '18px' }}>
+                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Nouveau mot de passe</label>
+                        <input type="password" required placeholder="Minimum 6 caractères" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '9px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none'
+                        }} />
+                      </div>
+
+                      <button type="submit" className="hover-brightness" style={{
+                        width: '100%', padding: '11px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg,#0EA5E9,#0284C7)', color: '#fff', fontWeight: 600, fontSize: '14px', cursor: 'pointer', marginBottom: '16px'
+                      }}>
+                        Réinitialiser le mot de passe
+                      </button>
+
+                      <div style={{ textAlign: 'center', fontSize: '13.5px', color: '#64748B', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); setForgotStep(1); }}>← Retour à l'étape précédente</a>
+                        <a href="#" onClick={(e) => { e.preventDefault(); handleForgotPasswordRequest(e); }} style={{ fontSize: '13px', color: '#0EA5E9' }}>Renvoyer le code</a>
+                      </div>
+                    </form>
+                  )}
+                </div>
               )}
 
             </div>
