@@ -363,6 +363,9 @@ function App() {
       setLoading(true);
       const res = await api.forgotPassword(forgotEmail);
       fireToast('valide', res.message || 'Code envoyé !');
+      if (res.previewCode) {
+        setForgotCode(res.previewCode);
+      }
       setForgotStep(2);
     } catch (err: any) {
       fireToast('refuse', err.message || 'Une erreur est survenue');
@@ -1054,6 +1057,15 @@ function App() {
                       <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>
                         Saisissez le code reçu par e-mail et définissez votre nouveau mot de passe.
                       </p>
+
+                      {forgotCode && (
+                        <div style={{
+                          background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '8px', padding: '10px 12px',
+                          fontSize: '12.5px', color: '#0369A1', marginBottom: '14px', lineHeight: '1.4'
+                        }}>
+                          💡 <strong>Mode Démo</strong> : Le code a été pré-rempli automatiquement ({forgotCode}).
+                        </div>
+                      )}
 
                       <div style={{ marginBottom: '14px' }}>
                         <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Code de réinitialisation (6 chiffres)</label>

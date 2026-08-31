@@ -233,7 +233,13 @@ router.post('/forgot-password', async (req: AuthRequest, res: Response): Promise
       text: `Bonjour ${user.name},\n\nVous avez demandé la réinitialisation du mot de passe de votre compte DocFlow.\n\nVotre code de réinitialisation à 6 chiffres est : ${code}\n\nCe code est valable pendant 15 minutes.\n\nSi vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.\n\nCordialement,\nL'équipe DocFlow`
     });
 
-    res.json({ message: 'Un code de réinitialisation a été envoyé par e-mail.' });
+    const isMock = !process.env.SMTP_HOST || !process.env.SMTP_USER;
+    res.json({
+      message: isMock
+        ? `Code envoyé ! (Mode démo : votre code est ${code})`
+        : 'Un code de réinitialisation a été envoyé par e-mail.',
+      previewCode: isMock ? code : undefined
+    });
   } catch (error: any) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Erreur lors de la demande de réinitialisation' });
